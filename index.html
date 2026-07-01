@@ -1140,4 +1140,67 @@ Object.entries(PROMPT_CATS).forEach(([key,c])=>{
   promptChipRow.appendChild(chip);
 });
 promptChipRow.addEventListener('click',e=>{
-  const btn=e.
+  const btn=e.target.closest('.chip'); if(!btn) return;
+  activePromptCat=btn.dataset.cat;
+  [...promptChipRow.children].forEach(c=>c.classList.toggle('active',c===btn));
+  renderPrompts();
+});
+document.getElementById('searchPrompts').addEventListener('input',e=>{
+  searchPrompts=e.target.value.trim().toLowerCase(); renderPrompts();
+});
+
+function renderPrompts(){
+  const grid=document.getElementById('promptGrid');
+  const empty=document.getElementById('emptyPrompts');
+  const filtered=PROMPTS.filter(p=>{
+    const mc=activePromptCat==='todas'||p.category===activePromptCat;
+    const ms=!searchPrompts||(p.title+' '+p.desc).toLowerCase().includes(searchPrompts);
+    return mc&&ms;
+  });
+  document.getElementById('countPrompts').textContent=`${filtered.length} de ${PROMPTS.length} prompts`;
+  grid.innerHTML='';
+  if(filtered.length===0){empty.style.display='block';return;}
+  empty.style.display='none';
+  filtered.forEach(p=>{
+    const idx=PROMPTS.indexOf(p);
+    const card=document.createElement('div');
+    card.className='card prompt-card';
+    card.innerHTML=`
+      <span class="prompt-tag">${PROMPT_CATS[p.category].icon} ${PROMPT_CATS[p.category].label}</span>
+      <h3>${p.title}</h3>
+      <p class="desc">${p.desc}</p>
+      <div class="prompt-preview">${p.prompt.slice(0,140).replace(/</g,'&lt;')}…</div>
+      <div class="card-foot">Ver prompt completo + copiar →</div>
+    `;
+    card.addEventListener('click',()=>openPromptModal(idx));
+    grid.appendChild(card);
+  });
+}
+
+function openPromptModal(idx){
+  const p=PROMPTS[idx];
+  const modal=document.getElementById('modalBody');
+  const escaped=p.prompt.replace(/</g,'&lt;');
+  modal.innerHTML=`
+    <button class="modal-close" id="closeModal">✕</button>
+    <span class="prompt-tag">${PROMPT_CATS[p.category].icon} ${PROMPT_CATS[p.category].label}</span>
+    <h2>${p.title}</h2>
+    <p class="desc">${p.desc}</p>
+    <pre class="prompt-code" id="promptCodeBlock">${escaped}</pre>
+    <button class="copy-btn" id="copyBtn">📋 Copiar prompt</button>
+  `;
+  document.getElementById('overlay').classList.add('visible');
+  document.getElementById('closeModal').addEventListener('click',closeModal);
+  document.getElementById('copyBtn').addEventListener('click',(e)=>{
+    navigator.clipboard.writeText(p.prompt).then(()=>{
+      e.target.textContent='✓ Copiado!';
+      e.target.classList.add('copied');
+      setTimeout(()=>{ e.target.textContent='📋 Copiar prompt'; e.target.classList.remove('copied'); },2000);
+    }).catch(()=>{ e.target.textContent='Selecione e copie manualmente'; });
+  });
+}
+
+renderPrompts();
+</script>
+</body>
+</html>
